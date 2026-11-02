@@ -1,0 +1,31 @@
+
+digraph ER {
+ graph [rankdir=LR, splines=ortho, nodesep=0.45, ranksep=0.8, bgcolor="white", pad=0.25];
+ node [shape=record, fontname="Arial", fontsize=10];
+ edge [fontname="Arial", fontsize=9];
+ users [label="{users|PK id : UUID\lname, email UNIQUE\lpassword_hash\lgoal, level\lphysical_limitations\l}"];
+ exercises [label="{exercises|PK id : UUID\lname, description\ldifficulty, video_url\l}"];
+ workouts [label="{workouts|PK id : UUID\ltitle, description\ldifficulty, duration_minutes\lpublished\l}"];
+ workout_exercises [label="{workout_exercises|PK id : UUID\lFK workout_id\lFK exercise_id\lposition, sets, repetitions\l}"];
+ programs [label="{programs|PK id : UUID\ltitle, description, goal\l}"];
+ program_workouts [label="{program_workouts|PK id : UUID\lFK program_id\lFK workout_id\lposition\l}"];
+ personal_plans [label="{personal_plans|PK id : UUID\lFK user_id\lstart_date, end_date\lload_level, progress_percent\l}"];
+ planned_workouts [label="{planned_workouts|PK id : UUID\lFK personal_plan_id\lFK workout_id\lplanned_date, status\lFK training_session_id\l}"];
+ training_sessions [label="{training_sessions|PK id : UUID\lFK user_id\lFK workout_id\lFK personal_plan_id\lstatus, started_at, completed_at\l}"];
+ exercise_executions [label="{exercise_executions|PK id : UUID\lFK training_session_id\lFK exercise_id\lrepetitions, technique_score\ltechnique_issue, technique_hint\l}"];
+ nutrition_plans [label="{nutrition_plans|PK id : UUID\lFK user_id\lplan_data JSONB\lupdated_at\l}"];
+ users -> personal_plans [label="1:N"];
+ users -> training_sessions [label="1:N"];
+ users -> nutrition_plans [label="1:N"];
+ workouts -> workout_exercises [label="1:N"];
+ exercises -> workout_exercises [label="1:N"];
+ programs -> program_workouts [label="1:N"];
+ workouts -> program_workouts [label="1:N"];
+ personal_plans -> planned_workouts [label="1:N"];
+ workouts -> planned_workouts [label="1:N"];
+ training_sessions -> planned_workouts [label="0..1:1"];
+ workouts -> training_sessions [label="1:N"];
+ personal_plans -> training_sessions [label="0..1:N"];
+ training_sessions -> exercise_executions [label="1:N"];
+ exercises -> exercise_executions [label="1:N"];
+}

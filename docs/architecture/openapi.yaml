@@ -1,0 +1,387 @@
+openapi: 3.1.0
+info:
+  title: Fitness Assistant API
+  version: 1.0.0
+  description: |
+    API приложения самостоятельных домашних тренировок.
+    Backend — модульный монолит; контексты профиля, каталога,
+    персонального плана, тренировочной сессии и питания имеют внутренние границы.
+servers:
+  - url: https://api.fitness.example/api/v1
+    description: Пример production URL (placeholder)
+tags:
+  - name: Auth
+  - name: Profile
+  - name: Catalog
+  - name: Plan
+  - name: Sessions
+security:
+  - bearerAuth: []
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Регистрация пользователя
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Пользователь создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email уже зарегистрирован
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Вход и получение JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Успешная авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /profile:
+    get:
+      tags: [Profile]
+      summary: Получить профиль текущего пользователя
+      responses:
+        '200':
+          description: Профиль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [Profile]
+      summary: Обновить профиль и тренировочные параметры
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '200':
+          description: Профиль обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /exercises:
+    get:
+      tags: [Catalog]
+      summary: Поиск упражнений
+      parameters:
+        - name: q
+          in: query
+          schema: {type: string}
+          description: Поиск по названию
+        - name: equipment
+          in: query
+          schema: {type: string}
+        - name: difficulty
+          in: query
+          schema: {$ref: '#/components/schemas/Difficulty'}
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 1, default: 1}
+        - name: pageSize
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 50, default: 20}
+      responses:
+        '200':
+          description: Список упражнений
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExercisePage'
+  /workouts:
+    get:
+      tags: [Catalog]
+      summary: Каталог тренировок с фильтрацией
+      parameters:
+        - name: q
+          in: query
+          schema: {type: string}
+        - name: difficulty
+          in: query
+          schema: {$ref: '#/components/schemas/Difficulty'}
+        - name: equipment
+          in: query
+          schema: {type: string}
+        - name: durationMax
+          in: query
+          schema: {type: integer, minimum: 1}
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 1, default: 1}
+      responses:
+        '200':
+          description: Результаты поиска (пустой список допустим)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkoutPage'
+  /plans/me:
+    get:
+      tags: [Plan]
+      summary: Получить персональный план текущего пользователя
+      responses:
+        '200':
+          description: План и прогресс
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalPlan'
+        '404':
+          description: План еще не сформирован
+    post:
+      tags: [Plan]
+      summary: Создать персональный план
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlanRequest'
+      responses:
+        '201':
+          description: План создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonalPlan'
+  /sessions:
+    post:
+      tags: [Sessions]
+      summary: Начать тренировочную сессию
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartSessionRequest'
+      responses:
+        '201':
+          description: Сессия начата
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSession'
+        '409':
+          description: Недопустимое состояние тренировки
+  /sessions/{sessionId}/complete:
+    post:
+      tags: [Sessions]
+      summary: Завершить сессию и зафиксировать результат (идемпотентно)
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteSessionRequest'
+      responses:
+        '200':
+          description: Сессия завершена; повторный запрос не удваивает прогресс
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrainingSession'
+        '404':
+          description: Сессия не найдена
+        '409':
+          description: Сессия уже находится в несовместимом состоянии
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  responses:
+    BadRequest:
+      description: Ошибка валидации
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+    Unauthorized:
+      description: Требуется авторизация или токен недействителен
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Error'}
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email: {type: string, format: email}
+        password: {type: string, format: password, minLength: 8}
+        name: {type: string, minLength: 1, maxLength: 100}
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: {type: string, format: email}
+        password: {type: string, format: password}
+    AuthResponse:
+      type: object
+      required: [accessToken, tokenType, user]
+      properties:
+        accessToken: {type: string}
+        tokenType: {type: string, enum: [Bearer]}
+        expiresIn: {type: integer, description: Срок жизни токена в секундах}
+        user: {$ref: '#/components/schemas/UserProfile'}
+    UserProfile:
+      type: object
+      required: [id, name, email]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        email: {type: string, format: email}
+        goal: {type: string, enum: [weight_loss, muscle_gain, fitness, other]}
+        level: {$ref: '#/components/schemas/Difficulty'}
+        physicalLimitations:
+          type: array
+          items: {type: string}
+    ProfileUpdate:
+      type: object
+      properties:
+        name: {type: string}
+        goal: {type: string, enum: [weight_loss, muscle_gain, fitness, other]}
+        level: {$ref: '#/components/schemas/Difficulty'}
+        physicalLimitations:
+          type: array
+          items: {type: string}
+    Difficulty:
+      type: string
+      enum: [beginner, intermediate, advanced]
+    Exercise:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        description: {type: string}
+        equipment: {type: array, items: {type: string}}
+        difficulty: {$ref: '#/components/schemas/Difficulty'}
+        videoUrl: {type: string, format: uri}
+    ExercisePage:
+      type: object
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/Exercise'}}
+        page: {type: integer}
+        total: {type: integer}
+    Workout:
+      type: object
+      required: [id, title, difficulty, durationMinutes]
+      properties:
+        id: {type: string, format: uuid}
+        title: {type: string}
+        description: {type: string}
+        difficulty: {$ref: '#/components/schemas/Difficulty'}
+        durationMinutes: {type: integer, minimum: 1}
+        equipment: {type: array, items: {type: string}}
+        exercises: {type: array, items: {$ref: '#/components/schemas/WorkoutExercise'}}
+    WorkoutExercise:
+      type: object
+      properties:
+        exerciseId: {type: string, format: uuid}
+        position: {type: integer, minimum: 1}
+        sets: {type: integer, minimum: 1}
+        repetitions: {type: integer, minimum: 1}
+        durationSeconds: {type: integer, minimum: 1}
+    WorkoutPage:
+      type: object
+      properties:
+        items: {type: array, items: {$ref: '#/components/schemas/Workout'}}
+        page: {type: integer}
+        total: {type: integer}
+    CreatePlanRequest:
+      type: object
+      required: [startDate, endDate]
+      properties:
+        startDate: {type: string, format: date}
+        endDate: {type: string, format: date}
+        loadLevel: {type: string, enum: [low, medium, high]}
+    PlannedWorkout:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        workoutId: {type: string, format: uuid}
+        plannedDate: {type: string, format: date}
+        status: {type: string, enum: [planned, completed, skipped]}
+        trainingSessionId: {type: string, format: uuid}
+    PersonalPlan:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        startDate: {type: string, format: date}
+        endDate: {type: string, format: date}
+        progressPercent: {type: number, minimum: 0, maximum: 100}
+        workouts: {type: array, items: {$ref: '#/components/schemas/PlannedWorkout'}}
+    StartSessionRequest:
+      type: object
+      required: [workoutId]
+      properties:
+        workoutId: {type: string, format: uuid}
+        personalPlanId: {type: string, format: uuid}
+    CompleteSessionRequest:
+      type: object
+      properties:
+        note: {type: string, maxLength: 1000}
+        completedAt: {type: string, format: date-time}
+    TrainingSession:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        workoutId: {type: string, format: uuid}
+        status: {type: string, enum: [in_progress, completed, abandoned]}
+        startedAt: {type: string, format: date-time}
+        completedAt: {type: string, format: date-time}
+        executions: {type: array, items: {$ref: '#/components/schemas/ExerciseExecution'}}
+    ExerciseExecution:
+      type: object
+      properties:
+        exerciseId: {type: string, format: uuid}
+        repetitions: {type: integer, minimum: 0}
+        techniqueScore: {type: number, minimum: 0, maximum: 100}
+        techniqueIssue: {type: string}
+        techniqueHint: {type: string}
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        details: {type: object}

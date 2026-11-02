@@ -1,0 +1,117 @@
+Project fitness_assistant {
+  database_type: "PostgreSQL"
+  Note: "ER-модель архитектурного паспорта. UUID — первичные идентификаторы."
+}
+
+Table users {
+  id uuid [pk]
+  name varchar(100) [not null]
+  email varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  goal varchar(30)
+  level varchar(20)
+  physical_limitations text
+  created_at timestamp [not null]
+}
+
+Table exercises {
+  id uuid [pk]
+  name varchar(150) [not null]
+  description text
+  difficulty varchar(20)
+  video_url text
+}
+
+Table workouts {
+  id uuid [pk]
+  title varchar(150) [not null]
+  description text
+  difficulty varchar(20) [not null]
+  duration_minutes int [not null]
+  published boolean [not null, default: false]
+}
+
+Table workout_exercises {
+  id uuid [pk]
+  workout_id uuid [not null]
+  exercise_id uuid [not null]
+  position int [not null]
+  sets int
+  repetitions int
+  duration_seconds int
+}
+
+Table programs {
+  id uuid [pk]
+  title varchar(150) [not null]
+  description text
+  goal varchar(30)
+}
+
+Table program_workouts {
+  id uuid [pk]
+  program_id uuid [not null]
+  workout_id uuid [not null]
+  position int [not null]
+}
+
+Table personal_plans {
+  id uuid [pk]
+  user_id uuid [not null]
+  start_date date [not null]
+  end_date date [not null]
+  load_level varchar(20)
+  progress_percent numeric(5,2) [not null, default: 0]
+}
+
+Table planned_workouts {
+  id uuid [pk]
+  personal_plan_id uuid [not null]
+  workout_id uuid [not null]
+  planned_date date [not null]
+  status varchar(20) [not null, default: 'planned']
+  training_session_id uuid
+}
+
+Table training_sessions {
+  id uuid [pk]
+  user_id uuid [not null]
+  workout_id uuid [not null]
+  personal_plan_id uuid
+  status varchar(20) [not null]
+  started_at timestamp [not null]
+  completed_at timestamp
+  note text
+}
+
+Table exercise_executions {
+  id uuid [pk]
+  training_session_id uuid [not null]
+  exercise_id uuid [not null]
+  repetitions int [not null, default: 0]
+  technique_score numeric(5,2)
+  technique_issue text
+  technique_hint text
+}
+
+Table nutrition_plans {
+  id uuid [pk]
+  user_id uuid [not null]
+  plan_data jsonb [not null]
+  updated_at timestamp [not null]
+}
+
+Ref: workout_exercises.workout_id > workouts.id
+Ref: workout_exercises.exercise_id > exercises.id
+Ref: program_workouts.program_id > programs.id
+Ref: program_workouts.workout_id > workouts.id
+Ref: personal_plans.user_id > users.id
+Ref: planned_workouts.personal_plan_id > personal_plans.id
+Ref: planned_workouts.workout_id > workouts.id
+Ref: planned_workouts.training_session_id - training_sessions.id
+Ref: training_sessions.user_id > users.id
+Ref: training_sessions.workout_id > workouts.id
+Ref: training_sessions.personal_plan_id > personal_plans.id
+Ref: exercise_executions.training_session_id > training_sessions.id
+Ref: exercise_executions.exercise_id > exercises.id
+Ref: nutrition_plans.user_id > users.id
