@@ -37,6 +37,7 @@ fitness-architecture-passport/
 
 - [ADR-001 — выбор архитектуры](docs/architecture/ADR-001.md)
 - [C4 — System Context + Container (draw.io)](docs/architecture/c4-diagram.drawio)
+- - [C4 — System Context + Container (PNG)](docs/architecture/c4-diagram.png)
 - [OpenAPI 3.1](docs/architecture/openapi.yaml)
 - [ER-модель (DBML)](docs/architecture/er-diagram.dbml)
 - [ER-диаграмма (PNG)](docs/architecture/er-diagram.png)
