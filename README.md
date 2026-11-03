@@ -43,7 +43,7 @@ fitness-architecture-passport/
 
 ## Просмотр диаграмм
 
-- C4: открыть `c4-diagram.drawio` в [draw.io](https://app.diagrams.net/).
+- C4: открыть `c4-diagram.drawio` в [draw.io](https://app.diagrams.net/) или посмотреть PNG.
 - OpenAPI: открыть `openapi.yaml` в [Swagger Editor](https://editor.swagger.io/).
 - ER: открыть `er-diagram.dbml` в [dbdiagram.io](https://dbdiagram.io/) или посмотреть PNG.
 
